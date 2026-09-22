@@ -9,33 +9,33 @@ local guiAlive = true
 
 local ThemePresets = {
     Dark = {
-        Background = Color3.fromRGB(9, 18, 36),
-        Topbar = Color3.fromRGB(12, 24, 46),
-        Row = Color3.fromRGB(16, 31, 58),
-        RowHover = Color3.fromRGB(21, 40, 72),
-        Input = Color3.fromRGB(13, 27, 51),
-        Border = Color3.fromRGB(33, 58, 92),
-        BorderBright = Color3.fromRGB(45, 189, 230),
-        Text = Color3.fromRGB(238, 244, 250),
-        Muted = Color3.fromRGB(128, 150, 178),
-        Placeholder = Color3.fromRGB(87, 107, 133),
-        ToggleOn = Color3.fromRGB(244, 130, 33),
-        TabActive = Color3.fromRGB(26, 48, 82),
+        Background = Color3.fromRGB(6, 12, 23),
+        Topbar = Color3.fromRGB(8, 17, 31),
+        Row = Color3.fromRGB(13, 27, 47),
+        RowHover = Color3.fromRGB(17, 34, 57),
+        Input = Color3.fromRGB(9, 20, 36),
+        Border = Color3.fromRGB(27, 49, 75),
+        BorderBright = Color3.fromRGB(72, 126, 190),
+        Text = Color3.fromRGB(232, 238, 247),
+        Muted = Color3.fromRGB(126, 145, 170),
+        Placeholder = Color3.fromRGB(78, 96, 119),
+        ToggleOn = Color3.fromRGB(72, 126, 190),
+        TabActive = Color3.fromRGB(16, 35, 61),
     },
 
     Light = {
-        Background = Color3.fromRGB(233, 239, 247),
-        Topbar = Color3.fromRGB(244, 248, 252),
-        Row = Color3.fromRGB(219, 228, 240),
-        RowHover = Color3.fromRGB(206, 218, 234),
-        Input = Color3.fromRGB(241, 246, 251),
-        Border = Color3.fromRGB(179, 195, 216),
-        BorderBright = Color3.fromRGB(45, 165, 205),
-        Text = Color3.fromRGB(15, 27, 46),
-        Muted = Color3.fromRGB(83, 101, 128),
-        Placeholder = Color3.fromRGB(120, 137, 160),
-        ToggleOn = Color3.fromRGB(230, 118, 26),
-        TabActive = Color3.fromRGB(196, 213, 233),
+        Background = Color3.fromRGB(235, 240, 247),
+        Topbar = Color3.fromRGB(247, 249, 252),
+        Row = Color3.fromRGB(222, 229, 239),
+        RowHover = Color3.fromRGB(211, 220, 232),
+        Input = Color3.fromRGB(244, 247, 251),
+        Border = Color3.fromRGB(181, 194, 212),
+        BorderBright = Color3.fromRGB(72, 126, 190),
+        Text = Color3.fromRGB(15, 25, 41),
+        Muted = Color3.fromRGB(83, 100, 124),
+        Placeholder = Color3.fromRGB(119, 134, 155),
+        ToggleOn = Color3.fromRGB(72, 126, 190),
+        TabActive = Color3.fromRGB(202, 216, 234),
     }
 }
 
@@ -124,12 +124,12 @@ gui.Enabled = false
 
 local BASE_WIDTH = 500
 local BASE_HEIGHT = 430
-local TOPBAR_HEIGHT = 42
-local SIDEBAR_COLLAPSED = 50
-local SIDEBAR_EXPANDED = 148
-local CONTENT_GAP = 8
-local PAGE_HEADER_HEIGHT = 24
-local SECTION_BAR_HEIGHT = 30
+local TOPBAR_HEIGHT = 48
+local SIDEBAR_COLLAPSED = 174
+local SIDEBAR_EXPANDED = 174
+local CONTENT_GAP = 14
+local PAGE_HEADER_HEIGHT = 26
+local SECTION_BAR_HEIGHT = 34
 local sidebarExpanded = false
 
 local NAV_MARKS = {}
@@ -145,7 +145,7 @@ local main = create("Frame", {
     Active = true,
     Parent = gui
 })
-corner(main, 6)
+corner(main, 5)
 local mainStroke = stroke(main, Theme.BorderBright, 0.18)
 
 local topbar = create("Frame", {
@@ -156,7 +156,7 @@ local topbar = create("Frame", {
     Active = true,
     Parent = main
 })
-corner(topbar, 6)
+corner(topbar, 5)
 
 local topbarSquareBottom = create("Frame", {
     Name = "SquareBottom",
@@ -315,8 +315,8 @@ local sidebarLine = create("Frame", {
 })
 
 local navHolder = create("Frame", {
-    Position = UDim2.fromOffset(5, 7),
-    Size = UDim2.new(1, -10, 1, -14),
+    Position = UDim2.fromOffset(10, 12),
+    Size = UDim2.new(1, -20, 1, -24),
     BackgroundTransparency = 1,
     Parent = sidebar
 })
@@ -830,19 +830,19 @@ local function toggle(parent, name, callback, defaultValue)
 
     local row = create("Frame", {
         Name = "Toggle_" .. tostring(name),
-        Size = UDim2.new(1, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 36),
         BackgroundColor3 = Theme.Row,
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(row, 3)
+    corner(row, 4)
     local rowStroke = stroke(row, Theme.Border, 0.38)
 
     local label = create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(9, 0),
-        Size = UDim2.new(1, -42, 1, 0),
-        Font = Enum.Font.GothamSemibold,
+        Position = UDim2.fromOffset(12, 0),
+        Size = UDim2.new(1, -64, 1, 0),
+        Font = Enum.Font.GothamMedium,
         Text = tostring(name),
         TextColor3 = Theme.Text,
         TextSize = 11,
@@ -851,27 +851,26 @@ local function toggle(parent, name, callback, defaultValue)
         Parent = row
     })
 
-    local box = create("Frame", {
+    local track = create("Frame", {
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -8, 0.5, 0),
-        Size = UDim2.fromOffset(15, 15),
+        Position = UDim2.new(1, -11, 0.5, 0),
+        Size = UDim2.fromOffset(30, 16),
         BackgroundColor3 = Theme.Input,
         BorderSizePixel = 0,
         Parent = row
     })
-    corner(box, 2)
-    local boxStroke = stroke(box, Theme.BorderBright, 0.15)
+    corner(track, 8)
+    local trackStroke = stroke(track, Theme.Border, 0.12)
 
-    local fill = create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(7, 7),
-        BackgroundColor3 = Theme.ToggleOn,
-        BackgroundTransparency = 1,
+    local knob = create("Frame", {
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 3, 0.5, 0),
+        Size = UDim2.fromOffset(10, 10),
+        BackgroundColor3 = Theme.Muted,
         BorderSizePixel = 0,
-        Parent = box
+        Parent = track
     })
-    corner(fill, 1)
+    corner(knob, 5)
 
     local hitbox = create("TextButton", {
         BackgroundTransparency = 1,
@@ -882,14 +881,15 @@ local function toggle(parent, name, callback, defaultValue)
     })
 
     local function render(instant)
-        local duration = instant and 0 or 0.1
+        local duration = instant and 0 or 0.12
         row.BackgroundColor3 = Theme.Row
         rowStroke.Color = Theme.Border
         label.TextColor3 = Theme.Text
-        box.BackgroundColor3 = Theme.Input
-        fill.BackgroundColor3 = Theme.ToggleOn
-        tween(fill, {BackgroundTransparency = enabled and 0 or 1}, duration)
-        tween(boxStroke, {Color = enabled and Theme.ToggleOn or Theme.BorderBright}, duration)
+        track.BackgroundColor3 = enabled and Theme.ToggleOn or Theme.Input
+        trackStroke.Color = enabled and Theme.ToggleOn or Theme.Border
+        knob.BackgroundColor3 = enabled and Theme.Text or Theme.Muted
+        local x = enabled and 17 or 3
+        tween(knob, {Position = UDim2.new(0, x, 0.5, 0)}, duration)
     end
 
     hitbox.Activated:Connect(function()
@@ -925,7 +925,7 @@ local function dropdown(parent, name, options, callback, defaultValue)
         ClipsDescendants = true,
         Parent = parent
     })
-    corner(holder, 3)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.38)
 
     local label = create("TextLabel", {
@@ -1136,7 +1136,7 @@ local function multiDropdown(parent, name, options, callback, defaults)
         ClipsDescendants = true,
         Parent = parent
     })
-    corner(holder, 3)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.38)
 
     local label = create("TextLabel", {
@@ -1388,12 +1388,12 @@ local function slider(parent, name, minimum, maximum, defaultValue, step, callba
 
     local holder = create("Frame", {
         Name = "Slider_" .. tostring(name),
-        Size = UDim2.new(1, 0, 0, 43),
+        Size = UDim2.new(1, 0, 0, 48),
         BackgroundColor3 = Theme.Row,
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(holder, 3)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.35)
 
     local label = create("TextLabel", {
@@ -1423,8 +1423,8 @@ local function slider(parent, name, minimum, maximum, defaultValue, step, callba
     })
 
     local bar = create("Frame", {
-        Position = UDim2.fromOffset(9, 30),
-        Size = UDim2.new(1, -18, 0, 4),
+        Position = UDim2.fromOffset(10, 32),
+        Size = UDim2.new(1, -20, 0, 3),
         BackgroundColor3 = Theme.Input,
         BorderSizePixel = 0,
         Parent = holder
@@ -1504,7 +1504,7 @@ local function numberBox(parent, name, defaultValue, callback)
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(holder, 3)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.35)
 
     local label = create("TextLabel", {
@@ -1567,7 +1567,7 @@ local function textBox(parent, name, placeholder, callback)
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(holder, 3)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.35)
 
     local label = create("TextLabel", {
@@ -1627,7 +1627,7 @@ local function infoCard(parent, text, height, textColor)
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(holder, 3)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.35)
 
     local label = create("TextLabel", {
@@ -1667,7 +1667,7 @@ local function featureCard(parent, titleText, items)
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(holder, 4)
+    corner(holder, 5)
     local holderStroke = stroke(holder, Theme.Border, 0.32)
 
     local titleLabel = create("TextLabel", {
@@ -1882,7 +1882,7 @@ local function actionButton(parent, name, callback)
         BorderSizePixel = 0,
         Parent = parent
     })
-    corner(row, 3)
+    corner(row, 4)
     local rowStroke = stroke(row, Theme.Border, 0.38)
 
     local label = create("TextLabel", {
