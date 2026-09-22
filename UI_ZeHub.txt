@@ -6024,6 +6024,406 @@ end
 -- CREATE WINDOW
 -- ============================================================================
 
+-- ============================================================================
+-- BUILT-IN ZEHUB UTILITY TABS
+-- ============================================================================
+
+local function cleanSubtitle(value)
+
+    local text = tostring(value or "")
+
+    text = text:gsub("%s*[Ll][Ii][Tt][Ee]%s*", " ")
+    text = text:gsub("%s+", " ")
+
+    return text:match("^%s*(.-)%s*$") or ""
+
+end
+
+local function createUtilityCard(parent, height)
+
+    local holder = create("Frame", {
+
+        Size = UDim2.new(
+            1,
+            0,
+            0,
+            height or 58
+        ),
+
+        BackgroundColor3 = Theme.Row,
+
+        BackgroundTransparency = 0.08,
+
+        BorderSizePixel = 0,
+
+        Parent = parent
+    })
+
+    corner(holder, 6)
+
+    local holderStroke = stroke(
+        holder,
+        Theme.Border,
+        0.35
+    )
+
+    registerThemeRefresh(function()
+
+        if holder.Parent then
+            holder.BackgroundColor3 = Theme.Row
+            holderStroke.Color = Theme.Border
+        end
+
+    end)
+
+    return holder
+
+end
+
+local function createUtilityLabel(parent, text, position, size, textSize, color, bold)
+
+    return create("TextLabel", {
+
+        Position = position,
+
+        Size = size,
+
+        BackgroundTransparency = 1,
+
+        Text = tostring(text or ""),
+
+        TextColor3 = color or Theme.Text,
+
+        Font = bold and Enum.Font.GothamSemibold or Enum.Font.GothamMedium,
+
+        TextSize = textSize or 11,
+
+        TextXAlignment = Enum.TextXAlignment.Left,
+
+        TextYAlignment = Enum.TextYAlignment.Center,
+
+        TextTruncate = Enum.TextTruncate.AtEnd,
+
+        Parent = parent
+    })
+
+end
+
+local function createDynamicInfoCard(parent, titleText, initialText)
+
+    local holder = createUtilityCard(parent, 58)
+
+    local titleLabel = createUtilityLabel(
+        holder,
+        titleText,
+        UDim2.fromOffset(13, 8),
+        UDim2.new(1, -26, 0, 18),
+        11,
+        Theme.Text,
+        true
+    )
+
+    local valueLabel = createUtilityLabel(
+        holder,
+        initialText,
+        UDim2.fromOffset(13, 29),
+        UDim2.new(1, -26, 0, 18),
+        10,
+        Theme.Muted,
+        false
+    )
+
+    registerThemeRefresh(function()
+
+        if holder.Parent then
+            titleLabel.TextColor3 = Theme.Text
+            valueLabel.TextColor3 = Theme.Muted
+        end
+
+    end)
+
+    return {
+        Root = holder,
+        Title = titleLabel,
+        Value = valueLabel
+    }
+
+end
+
+local infoUserCard
+local infoAvatarCard
+
+local function addBuiltInTabs(window)
+
+    local state = {
+        HideUsername = false,
+        HideAvatar = false
+    }
+
+    local profileTab = window:CreateTab({
+        Name = "Profile",
+        Icon = "Profile"
+    })
+
+    local profileSection = profileTab:CreateSection({
+        Name = "Profile"
+    })
+
+    local profileCard = createUtilityCard(profileSection.Root, 76)
+
+    local avatar = create("ImageLabel", {
+
+        Position = UDim2.fromOffset(12, 12),
+
+        Size = UDim2.fromOffset(52, 52),
+
+        BackgroundColor3 = Theme.Input,
+
+        BackgroundTransparency = 0.05,
+
+        BorderSizePixel = 0,
+
+        Image = "",
+
+        ScaleType = Enum.ScaleType.Crop,
+
+        Parent = profileCard
+    })
+
+    corner(avatar, 8)
+
+    local avatarStroke = stroke(
+        avatar,
+        Theme.Border,
+        0.25
+    )
+
+    local displayLabel = createUtilityLabel(
+        profileCard,
+        "",
+        UDim2.fromOffset(76, 14),
+        UDim2.new(1, -90, 0, 20),
+        12,
+        Theme.Text,
+        true
+    )
+
+    local usernameLabel = createUtilityLabel(
+        profileCard,
+        "",
+        UDim2.fromOffset(76, 37),
+        UDim2.new(1, -90, 0, 18),
+        10,
+        Theme.Muted,
+        false
+    )
+
+    local hideUsernameToggle = profileSection:CreateToggle({
+        Name = "Hide Username",
+        Default = false,
+        Callback = function(value)
+            state.HideUsername = value == true
+
+            if state.HideUsername then
+                usernameLabel.Text = "Username hidden"
+                displayLabel.Text = "ZeHub Player"
+            else
+                usernameLabel.Text = "@" .. tostring(player.Name)
+                displayLabel.Text = tostring(player.DisplayName or player.Name)
+            end
+
+            local status = infoUserCard
+            if status then
+                status.Value.Text = state.HideUsername and "Username hidden" or ("@" .. tostring(player.Name))
+            end
+        end
+    })
+
+    local hideAvatarToggle = profileSection:CreateToggle({
+        Name = "Hide Avatar",
+        Default = false,
+        Callback = function(value)
+            state.HideAvatar = value == true
+            avatar.ImageTransparency = state.HideAvatar and 1 or 0
+
+            if state.HideAvatar then
+                avatar.BackgroundColor3 = Theme.Input
+            end
+
+            if infoAvatarCard then
+                infoAvatarCard.Value.Text = state.HideAvatar and "Avatar hidden" or "Avatar visible"
+            end
+        end
+    })
+
+    local profileNote = profileSection:CreateParagraph({
+        Text = "Your profile privacy settings are local to this UI. Changes are reflected on the Info page immediately.",
+        Height = 48
+    })
+
+    local infoTab = window:CreateTab({
+        Name = "Info",
+        Icon = "Info"
+    })
+
+    local infoSection = infoTab:CreateSection({
+        Name = "User"
+    })
+
+    infoUserCard = createDynamicInfoCard(
+        infoSection.Root,
+        "User",
+        "@" .. tostring(player.Name)
+    )
+
+    infoAvatarCard = createDynamicInfoCard(
+        infoSection.Root,
+        "Avatar",
+        "Avatar visible"
+    )
+
+    local accountCard = createDynamicInfoCard(
+        infoSection.Root,
+        "Account",
+        "User ID: " .. tostring(player.UserId)
+    )
+
+    local usefulSection = infoTab:CreateSection({
+        Name = "Useful Info"
+    })
+
+    usefulSection:CreateFeatureCard({
+        Title = "Useful Info",
+        Items = {
+            "Settings are grouped into separate tabs.",
+            "Profile privacy changes update the Info page.",
+            "The window supports mouse, touch and minimize controls.",
+            "Theme changes are applied without rebuilding the window."
+        }
+    })
+
+    usefulSection:CreateParagraph({
+        Text = "ZeHub is designed around a compact glass layout with simple controls and low visual noise.",
+        Height = 50
+    })
+
+    local configTab = window:CreateTab({
+        Name = "Configs",
+        Icon = "Settings"
+    })
+
+    local configSection = configTab:CreateSection({
+        Name = "Appearance"
+    })
+
+    configSection:CreateButton({
+        Name = "Toggle Theme",
+        Callback = function()
+            window:ToggleTheme()
+        end
+    })
+
+    configSection:CreateButton({
+        Name = "Expand Sidebar",
+        Callback = function()
+            window:SetSidebarExpanded(true)
+        end
+    })
+
+    configSection:CreateButton({
+        Name = "Collapse Sidebar",
+        Callback = function()
+            window:SetSidebarExpanded(false)
+        end
+    })
+
+    configSection:CreateButton({
+        Name = "Minimize Window",
+        Callback = function()
+            window:SetMinimized(true)
+        end
+    })
+
+    configSection:CreateParagraph({
+        Text = "Configuration controls affect the current window session. Your existing game controls and callbacks are not changed.",
+        Height = 50
+    })
+
+    local changelogTab = window:CreateTab({
+        Name = "Changelog",
+        Icon = "Changelog"
+    })
+
+    local changelogSection = changelogTab:CreateSection({
+        Name = "Updates"
+    })
+
+    changelogSection:CreateFeatureCard({
+        Title = "Recent",
+        Items = {
+            "Refined glass transparency and contrast.",
+            "Added Profile privacy controls.",
+            "Added Configs and Info tabs.",
+            "Added a compact changelog and useful info."
+        }
+    })
+
+    changelogSection:CreateParagraph({
+        Text = "ZeHub UI • Natural Glass edition",
+        Height = 42
+    })
+
+    local function updateProfile()
+
+        if state.HideUsername then
+            displayLabel.Text = "ZeHub Player"
+            usernameLabel.Text = "Username hidden"
+        else
+            displayLabel.Text = tostring(player.DisplayName or player.Name)
+            usernameLabel.Text = "@" .. tostring(player.Name)
+        end
+
+        avatar.ImageTransparency = state.HideAvatar and 1 or 0
+
+        infoUserCard.Value.Text = state.HideUsername
+            and "Username hidden"
+            or ("@" .. tostring(player.Name))
+
+        infoAvatarCard.Value.Text = state.HideAvatar
+            and "Avatar hidden"
+            or "Avatar visible"
+
+    end
+
+    task.spawn(function()
+
+        local ok, image = pcall(function()
+            local content = Players:GetUserThumbnailAsync(
+                player.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size150x150
+            )
+            return content
+        end)
+
+        if ok and image then
+            avatar.Image = image
+        end
+
+        updateProfile()
+
+    end)
+
+    -- Keep references alive for the callbacks above.
+    return {
+        Profile = profileTab,
+        Configs = configTab,
+        Info = infoTab,
+        Changelog = changelogTab
+    }
+
+end
+
 function Library:CreateWindow(config)
 
     config =
@@ -6080,7 +6480,7 @@ function Library:CreateWindow(config)
         )
 
     subtitle.Text =
-        tostring(
+        cleanSubtitle(
             config.Subtitle
             or "UI Library"
         )
@@ -6125,6 +6525,20 @@ function Library:CreateWindow(config)
     self._window =
         window
 
+    if config.BuiltInTabs ~= false then
+        addBuiltInTabs(window)
+
+        -- Built-in tabs are added without stealing the first custom tab
+        -- created by the user's existing script.
+        activePageName = nil
+
+        for _, pageData in pairs(pages) do
+            pageData.Root.Visible = false
+        end
+
+        refreshSideTabs()
+    end
+
     gui.Enabled = true
 
     applyTheme(
@@ -6164,7 +6578,7 @@ function WindowMethods:SetTitle(
     if newSubtitle ~= nil then
 
         subtitle.Text =
-            tostring(
+            cleanSubtitle(
                 newSubtitle
             )
 
