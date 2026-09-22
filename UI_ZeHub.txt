@@ -33,19 +33,6 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
-
-local controlRegistry = {}
-local keybindRegistry = {}
-local favoriteRegistry = {}
-local refreshSidebarProfile
-local profileSettings = {
-    HideUsername = false,
-    HideAvatar = false
-}
-
-local CONFIG_FOLDER = "ZeHub"
-local CONFIG_PATH = CONFIG_FOLDER .. "/Configs"
 
 local player = Players.LocalPlayer
 
@@ -58,26 +45,26 @@ local guiAlive = true
 local ThemePresets = {
 
     Dark = {
-        Background = Color3.fromRGB(7, 7, 8),
-        Topbar = Color3.fromRGB(10, 10, 11),
-        Sidebar = Color3.fromRGB(8, 8, 9),
+        Background = Color3.fromRGB(7, 8, 10),
+        Topbar = Color3.fromRGB(10, 11, 14),
+        Sidebar = Color3.fromRGB(8, 10, 12),
 
-        Row = Color3.fromRGB(15, 15, 16),
-        RowHover = Color3.fromRGB(23, 23, 24),
+        Row = Color3.fromRGB(15, 17, 20),
+        RowHover = Color3.fromRGB(22, 25, 29),
 
-        Input = Color3.fromRGB(11, 11, 12),
+        Input = Color3.fromRGB(10, 12, 15),
 
-        Border = Color3.fromRGB(45, 45, 47),
-        BorderBright = Color3.fromRGB(105, 105, 108),
+        Border = Color3.fromRGB(48, 51, 57),
+        BorderBright = Color3.fromRGB(112, 116, 124),
 
-        Text = Color3.fromRGB(245, 245, 246),
-        Muted = Color3.fromRGB(145, 145, 149),
-        Placeholder = Color3.fromRGB(82, 82, 86),
+        Text = Color3.fromRGB(238, 240, 243),
+        Muted = Color3.fromRGB(148, 152, 159),
+        Placeholder = Color3.fromRGB(91, 96, 104),
 
-        ToggleOn = Color3.fromRGB(235, 235, 238),
-        TabActive = Color3.fromRGB(28, 28, 30),
+        ToggleOn = Color3.fromRGB(232, 234, 238),
+        TabActive = Color3.fromRGB(24, 27, 31),
 
-        Accent = Color3.fromRGB(235, 235, 238),
+        Accent = Color3.fromRGB(232, 234, 238),
         Shadow = Color3.fromRGB(0, 0, 0)
     },
 
@@ -184,119 +171,6 @@ local function registerThemeRefresh(callback)
 
 end
 
-local function safeFileAvailable()
-    return type(isfolder) == "function"
-        and type(makefolder) == "function"
-        and type(isfile) == "function"
-        and type(readfile) == "function"
-        and type(writefile) == "function"
-        and type(delfile) == "function"
-end
-
-local function ensureConfigFolder()
-    if not safeFileAvailable() then return false end
-    pcall(function() if not isfolder(CONFIG_FOLDER) then makefolder(CONFIG_FOLDER) end end)
-    pcall(function() if not isfolder(CONFIG_PATH) then makefolder(CONFIG_PATH) end end)
-    return isfolder(CONFIG_PATH)
-end
-
-local function configFile(name)
-    return CONFIG_PATH .. "/" .. tostring(name):gsub("[^%w%-%_ ]", "") .. ".json"
-end
-
-local function registerControl(name, kind, getter, setter, extra)
-    local key = tostring(name)
-    controlRegistry[key] = {
-        Name = key,
-        Kind = kind,
-        Get = getter,
-        Set = setter,
-        Extra = extra or {}
-    }
-    return controlRegistry[key]
-end
-
-local function snapshotControls()
-    local result = {}
-    for name, control in pairs(controlRegistry) do
-        if control.Get then
-            local ok, value = pcall(control.Get)
-            if ok then result[name] = value end
-        end
-    end
-    result.__profile = {
-        HideUsername = profileSettings.HideUsername,
-        HideAvatar = profileSettings.HideAvatar
-    }
-    result.__favorites = {}
-    for name, enabled in pairs(favoriteRegistry) do
-        if enabled then result.__favorites[name] = true end
-    end
-    return result
-end
-
-local function applyControlSnapshot(data, fireCallbacks)
-    if type(data) ~= "table" then return false end
-    for name, value in pairs(data) do
-        local control = controlRegistry[name]
-        if control and control.Set then
-            pcall(control.Set, value, fireCallbacks == true)
-        end
-    end
-    if type(data.__profile) == "table" then
-        profileSettings.HideUsername = data.__profile.HideUsername == true
-        profileSettings.HideAvatar = data.__profile.HideAvatar == true
-    end
-    if type(data.__favorites) == "table" then
-        favoriteRegistry = {}
-        for name, enabled in pairs(data.__favorites) do
-            if enabled then favoriteRegistry[name] = true end
-        end
-    end
-    return true
-end
-
-local function saveConfig(name)
-    if not ensureConfigFolder() then return false, "File system is unavailable" end
-    local clean = tostring(name or ""):gsub("^%s+", ""):gsub("%s+$", "")
-    if clean == "" then return false, "Enter a config name" end
-    local ok, encoded = pcall(HttpService.JSONEncode, HttpService, snapshotControls())
-    if not ok then return false, "Could not encode config" end
-    local path = configFile(clean)
-    local wrote = pcall(writefile, path, encoded)
-    return wrote, wrote and "Saved" or "Could not save config"
-end
-
-local function loadConfig(name, fireCallbacks)
-    if not ensureConfigFolder() then return false, "File system is unavailable" end
-    local path = configFile(name)
-    if not isfile(path) then return false, "Config not found" end
-    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(path)) end)
-    if not ok or type(data) ~= "table" then return false, "Invalid config" end
-    applyControlSnapshot(data, fireCallbacks)
-    if type(refreshSidebarProfile) == "function" then refreshSidebarProfile() end
-    return true, "Loaded"
-end
-
-local function listConfigs()
-    if not ensureConfigFolder() or type(listfiles) ~= "function" then return {} end
-    local result = {}
-    for _, path in ipairs(listfiles(CONFIG_PATH)) do
-        local name = tostring(path):match("([^/\\]+)%.json$")
-        if name then table.insert(result, name) end
-    end
-    table.sort(result)
-    return result
-end
-
-local function deleteConfig(name)
-    if not ensureConfigFolder() then return false, "File system is unavailable" end
-    local path = configFile(name)
-    if not isfile(path) then return false, "Config not found" end
-    local ok = pcall(delfile, path)
-    return ok, ok and "Deleted" or "Could not delete config"
-end
-
 -- ============================================================================
 -- GUI PARENT
 -- ============================================================================
@@ -375,7 +249,7 @@ local main = create("Frame", {
 
     BackgroundColor3 = Theme.Background,
 
-    BackgroundTransparency = 0.12,
+    BackgroundTransparency = 0.15,
 
     BorderSizePixel = 0,
 
@@ -386,7 +260,7 @@ local main = create("Frame", {
     Parent = gui
 })
 
-corner(main, 7)
+corner(main, 9)
 
 local mainStroke = stroke(
     main,
@@ -411,7 +285,7 @@ local topbar = create("Frame", {
 
     BackgroundColor3 = Theme.Topbar,
 
-    BackgroundTransparency = 0.18,
+    BackgroundTransparency = 0.21,
 
     BorderSizePixel = 0,
 
@@ -420,7 +294,7 @@ local topbar = create("Frame", {
     Parent = main
 })
 
-corner(topbar, 7)
+corner(topbar, 9)
 
 local topbarBottom = create("Frame", {
 
@@ -440,7 +314,7 @@ local topbarBottom = create("Frame", {
 
     BackgroundColor3 = Theme.Topbar,
 
-    BackgroundTransparency = 0.18,
+    BackgroundTransparency = 0.21,
 
     BorderSizePixel = 0,
 
@@ -817,7 +691,7 @@ local topLine = create("Frame", {
 
     BackgroundColor3 = Theme.Border,
 
-    BackgroundTransparency = 0.25,
+    BackgroundTransparency = 0.28,
 
     BorderSizePixel = 0,
 
@@ -846,7 +720,7 @@ local sidebar = create("Frame", {
 
     BackgroundColor3 = Theme.Sidebar,
 
-    BackgroundTransparency = 0.25,
+    BackgroundTransparency = 0.28,
 
     BorderSizePixel = 0,
 
@@ -915,53 +789,6 @@ create("UIListLayout", {
 
     Parent = navHolder
 })
-
--- Compact profile card anchored to the bottom of the sidebar.
-local sidebarProfile = create("Frame", {
-    Name = "ProfileCard",
-    AnchorPoint = Vector2.new(0, 1),
-    Position = UDim2.new(0, 8, 1, -8),
-    Size = UDim2.new(1, -16, 0, 46),
-    BackgroundColor3 = Theme.Row,
-    BackgroundTransparency = 0.08,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Parent = sidebar
-})
-corner(sidebarProfile, 5)
-local sidebarProfileStroke = stroke(sidebarProfile, Theme.Border, 0.38)
-local sidebarAvatar = create("ImageLabel", {
-    Position = UDim2.fromOffset(5, 5), Size = UDim2.fromOffset(36,36),
-    BackgroundColor3 = Theme.Input, BorderSizePixel = 0,
-    Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(player.UserId) .. "&w=150&h=150", Parent = sidebarProfile
-})
-corner(sidebarAvatar, 18)
-local sidebarProfileName = create("TextLabel", {
-    Position = UDim2.fromOffset(48, 6), Size = UDim2.new(1,-54,0,17), BackgroundTransparency=1,
-    TextColor3=Theme.Text, TextSize=10, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left,
-    TextTruncate=Enum.TextTruncate.AtEnd, Parent=sidebarProfile
-})
-local sidebarProfileSub = create("TextLabel", {
-    Position = UDim2.fromOffset(48, 23), Size = UDim2.new(1,-54,0,14), BackgroundTransparency=1,
-    TextColor3=Theme.Muted, TextSize=8, Font=Enum.Font.GothamSemibold, TextXAlignment=Enum.TextXAlignment.Left,
-    TextTruncate=Enum.TextTruncate.AtEnd, Parent=sidebarProfile
-})
-refreshSidebarProfile = function()
-    local hidden = profileSettings.HideUsername
-    sidebarProfileName.Text = hidden and "ZeHub Player" or player.DisplayName
-    sidebarProfileSub.Text = hidden and "Privacy enabled" or ("@" .. player.Name)
-    sidebarAvatar.Visible = not profileSettings.HideAvatar
-end
-refreshSidebarProfile()
-registerThemeRefresh(function()
-    if sidebarProfile.Parent then
-        sidebarProfile.BackgroundColor3=Theme.Row
-        sidebarProfileStroke.Color=Theme.Border
-        sidebarProfileName.TextColor3=Theme.Text
-        sidebarProfileSub.TextColor3=Theme.Muted
-        sidebarAvatar.BackgroundColor3=Theme.Input
-    end
-end)
 
 -- ============================================================================
 -- CONTENT
@@ -2572,14 +2399,6 @@ local function toggle(
 
     render(true)
 
-    registerControl(name, "Toggle", function()
-        return enabled
-    end, function(value, fire)
-        enabled = value == true
-        render(false)
-        if fire and callback then task.spawn(callback, enabled) end
-    end)
-
     return row
 
 end
@@ -3129,20 +2948,6 @@ local function dropdown(
     end)
 
     refreshOptions()
-
-    registerControl(name, "Dropdown", function()
-        return selected
-    end, function(value, fire)
-        for _, option in ipairs(options) do
-            if option == value then
-                selected = option
-                valueLabel.Text = tostring(option)
-                refreshOptions()
-                if fire and callback then task.spawn(callback, option) end
-                return
-            end
-        end
-    end, {Options = options})
 
     return holder
 
@@ -3933,19 +3738,6 @@ local function multiDropdown(
 
     refresh()
 
-    registerControl(name, "MultiDropdown", function()
-        return snapshot()
-    end, function(value, fire)
-        selected = {}
-        if type(value) == "table" then
-            for _, option in ipairs(value) do
-                selected[option] = true
-            end
-        end
-        refresh()
-        if fire and callback then task.spawn(callback, snapshot(), isAllSelected()) end
-    end, {Options = options})
-
     return holder
 
 end
@@ -4358,15 +4150,6 @@ local function slider(
 
     render()
 
-    registerControl(name, "Slider", function()
-        return value
-    end, function(newValue, fire)
-        value = math.clamp(tonumber(newValue) or minimum, minimum, maximum)
-        value = math.clamp(math.floor((value - minimum) / step + 0.5) * step + minimum, minimum, maximum)
-        render()
-        if fire and callback then task.spawn(callback, value) end
-    end, {Minimum = minimum, Maximum = maximum, Step = step})
-
     return holder
 
 end
@@ -4554,14 +4337,6 @@ local function numberBox(
         end
     )
 
-    registerControl(name, "NumberBox", function()
-        return tonumber(box.Text) or 0
-    end, function(value, fire)
-        local number = tonumber(value) or 0
-        box.Text = tostring(number)
-        if fire and callback then task.spawn(callback, number) end
-    end)
-
     return holder
 
 end
@@ -4743,71 +4518,8 @@ local function textBox(
         end
     )
 
-    registerControl(name, "Input", function()
-        return box.Text
-    end, function(value, fire)
-        box.Text = tostring(value or "")
-        if fire and callback then task.spawn(callback, box.Text) end
-    end)
-
     return holder
 
-end
-
--- ============================================================================
--- KEYBIND
--- ============================================================================
-
-local function keybind(parent, name, defaultKey, callback)
-    local current = defaultKey or "None"
-    local listening = false
-    local holder = create("Frame", {
-        Name = "Keybind_" .. tostring(name),
-        Size = UDim2.new(1, 0, 0, 36),
-        BackgroundColor3 = Theme.Row,
-        BackgroundTransparency = 0.08,
-        BorderSizePixel = 0,
-        Parent = parent
-    })
-    corner(holder, 5)
-    local holderStroke = stroke(holder, Theme.Border, 0.38)
-    local label = create("TextLabel", {
-        BackgroundTransparency = 1, Position = UDim2.fromOffset(12,0),
-        Size = UDim2.new(1,-105,1,0), Font = Enum.Font.GothamMedium,
-        Text = tostring(name), TextColor3 = Theme.Text, TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left, Parent = holder
-    })
-    local button = create("TextButton", {
-        AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1,-8,0.5,0),
-        Size = UDim2.fromOffset(82,22), BackgroundColor3 = Theme.Input,
-        BorderSizePixel = 0, AutoButtonColor = false, Text = tostring(current),
-        TextColor3 = Theme.Muted, TextSize = 10, Font = Enum.Font.GothamSemibold, Parent = holder
-    })
-    corner(button,3); local buttonStroke=stroke(button,Theme.Border,0.28)
-    local function setKey(value, fire)
-        current = tostring(value or "None"); button.Text = current
-        if fire and callback then task.spawn(callback,current) end
-    end
-    button.Activated:Connect(function()
-        listening = true; button.Text = "Press key..."
-    end)
-    local connection = UserInputService.InputBegan:Connect(function(input, processed)
-        if not listening or processed then return end
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            listening = false; setKey(input.KeyCode.Name, true)
-        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-            listening = false; setKey("Mouse1", true)
-        elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-            listening = false; setKey("Mouse2", true)
-        end
-    end)
-    registerThemeRefresh(function()
-        if holder.Parent then holder.BackgroundColor3=Theme.Row; holderStroke.Color=Theme.Border; label.TextColor3=Theme.Text; button.BackgroundColor3=Theme.Input; buttonStroke.Color=Theme.Border; button.TextColor3=Theme.Muted end
-    end)
-    bindRowHover(button, holder, holderStroke)
-    registerControl(name, "Keybind", function() return current end, setKey)
-    table.insert(keybindRegistry, {Name=name, Get=function() return current end, Set=setKey, Connection=connection})
-    return holder
 end
 
 -- ============================================================================
@@ -5423,12 +5135,6 @@ local function updateSidebarGeometry(
                 + CONTENT_GAP * 2
             )
         )
-
-    sidebarProfile.Size = UDim2.new(1, -16, 0, 46)
-    sidebarProfile.Position = UDim2.new(0, 8, 1, -8)
-    sidebarAvatar.Visible = sidebarExpanded and not profileSettings.HideAvatar
-    sidebarProfileName.Visible = sidebarExpanded
-    sidebarProfileSub.Visible = sidebarExpanded
 
     if instant then
 
@@ -6262,7 +5968,7 @@ UserInputService.InputEnded:Connect(
 
 local Library = {
 
-    Version = "2.1.0",
+    Version = "2.0.0",
 
     Themes = {
         "Dark",
@@ -6433,47 +6139,6 @@ function Library:CreateWindow(config)
         true
     )
 
-    -- Built-in utility pages. Existing pages and styling remain untouched.
-    if not self._enhancementsInstalled then
-        self._enhancementsInstalled = true
-        local settingsTab = window:CreateTab({Name = "Settings", Icon = "Settings"})
-        local profileSection = settingsTab:CreateSection({Name = "Profile"})
-        local profileCard = infoCard(profileSection.Root, "", 58)
-        local avatar = create("ImageLabel", {
-            Position = UDim2.fromOffset(9,8), Size = UDim2.fromOffset(42,42),
-            BackgroundColor3 = Theme.Input, BorderSizePixel = 0,
-            Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(player.UserId) .. "&w=150&h=150", Parent = profileCard
-        })
-        corner(avatar, 21)
-        local profileName = create("TextLabel", {
-            Position = UDim2.fromOffset(60,8), Size = UDim2.new(1,-70,0,20), BackgroundTransparency=1,
-            TextColor3=Theme.Text, TextSize=11, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, Parent=profileCard
-        })
-        local profileSub = create("TextLabel", {
-            Position = UDim2.fromOffset(60,28), Size = UDim2.new(1,-70,0,18), BackgroundTransparency=1,
-            TextColor3=Theme.Muted, TextSize=9, Font=Enum.Font.GothamSemibold, TextXAlignment=Enum.TextXAlignment.Left, Parent=profileCard
-        })
-        local function refreshProfile()
-            local hidden=profileSettings.HideUsername; profileName.Text=hidden and "ZeHub Player" or player.DisplayName; profileSub.Text=hidden and "Username hidden" or ("@"..player.Name); avatar.Visible=not profileSettings.HideAvatar
-            refreshSidebarProfile()
-        end
-        refreshProfile()
-        toggle(profileSection.Root, "Hide Username", function(v) profileSettings.HideUsername=v; refreshProfile() end, profileSettings.HideUsername)
-        toggle(profileSection.Root, "Hide Avatar", function(v) profileSettings.HideAvatar=v; refreshProfile() end, profileSettings.HideAvatar)
-        local configSection = settingsTab:CreateSection({Name = "Configs"})
-        local configName = textBox(configSection.Root, "Config Name", "Enter a config name", nil)
-        local configInput = configName:FindFirstChildWhichIsA("TextBox", true)
-        actionButton(configSection.Root, "Save Config", function() if configInput then saveConfig(configInput.Text) end end)
-        actionButton(configSection.Root, "Load Config", function() if configInput then loadConfig(configInput.Text, true) end end)
-        actionButton(configSection.Root, "Delete Config", function() if configInput then deleteConfig(configInput.Text) end end)
-        local favoritesSection = settingsTab:CreateSection({Name = "Favorites"})
-        infoCard(favoritesSection.Root, "Use Window:SetFavorite(Feature, true) to mark features. Favorites persist in saved configs.", 46)
-        local utilitySection = settingsTab:CreateSection({Name = "UI"})
-        toggle(utilitySection.Root, "Dark / Light Theme", function(v) applyTheme(v and "Light" or "Dark") end, currentThemeName == "Light")
-        activePageName = nil
-        for _, page in pairs(pages) do page.Root.Visible = false end
-    end
-
     return window
 
 end
@@ -6642,68 +6307,6 @@ function WindowMethods:CreateTab(
 
     return tab
 
-end
-
--- ============================================================================
--- CONFIG / PROFILE / SEARCH / FAVORITES
--- ============================================================================
-
-function WindowMethods:SaveConfig(name)
-    return saveConfig(name)
-end
-
-function WindowMethods:LoadConfig(name, fireCallbacks)
-    return loadConfig(name, fireCallbacks)
-end
-
-function WindowMethods:DeleteConfig(name)
-    return deleteConfig(name)
-end
-
-function WindowMethods:ListConfigs()
-    return listConfigs()
-end
-
-function WindowMethods:SetProfilePrivacy(hideUsername, hideAvatar)
-    profileSettings.HideUsername = hideUsername == true
-    profileSettings.HideAvatar = hideAvatar == true
-    return self
-end
-
-function WindowMethods:GetProfile()
-    return {
-        Username = profileSettings.HideUsername and "ZeHub Player" or player.Name,
-        DisplayName = profileSettings.HideUsername and "ZeHub Player" or player.DisplayName,
-        UserId = player.UserId,
-        HideUsername = profileSettings.HideUsername,
-        HideAvatar = profileSettings.HideAvatar
-    }
-end
-
-function WindowMethods:SetFavorite(featureName, enabled)
-    favoriteRegistry[tostring(featureName)] = enabled == true
-    return self
-end
-
-function WindowMethods:IsFavorite(featureName)
-    return favoriteRegistry[tostring(featureName)] == true
-end
-
-function WindowMethods:GetFavorites()
-    local result = {}
-    for name, enabled in pairs(favoriteRegistry) do if enabled then table.insert(result, name) end end
-    table.sort(result); return result
-end
-
-function WindowMethods:Search(term)
-    term = string.lower(tostring(term or ""))
-    local results = {}
-    if term == "" then return results end
-    for name, control in pairs(controlRegistry) do
-        if string.find(string.lower(name), term, 1, true) then table.insert(results, {Name=name, Kind=control.Kind}) end
-    end
-    table.sort(results, function(a,b) return a.Name < b.Name end)
-    return results
 end
 
 -- ============================================================================
@@ -6988,13 +6591,6 @@ end
 SectionMethods.CreateTextBox =
     SectionMethods.CreateInput
 
-function SectionMethods:CreateKeybind(config)
-    config = normalizeConfig(config, "Keybind")
-    return keybind(self.Root, config.Name or "Keybind", config.Default or config.Key or "None", config.Callback)
-end
-
-SectionMethods.AddKeybind = SectionMethods.CreateKeybind
-
 function SectionMethods:CreateParagraph(
     config
 )
@@ -7082,9 +6678,6 @@ SectionMethods.AddToggle =
 
 SectionMethods.AddButton =
     SectionMethods.CreateButton
-
-SectionMethods.AddKeybind =
-    SectionMethods.CreateKeybind
 
 SectionMethods.AddDropdown =
     SectionMethods.CreateDropdown
