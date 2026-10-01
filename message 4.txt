@@ -1,0 +1,33 @@
+local Ophyn = loadstring(game:HttpGet('https://ophyn.space/interface'))()
+
+Ophyn.new({
+    Title = "Arbix Hub",
+    Description = "Key System",
+    Logo = "rbxassetid://80753385692614",
+    Theme = "Plant-Dark",
+    Folder = "Ophyn-KSY",
+
+    getkey = true,
+
+    discord_link = "https://discord.gg/HhhzDrBEKE",
+    Discord = "true",
+    Website = "true",
+
+    KeySystem = {
+        SaveKey = true,
+        API = {
+            {
+                Type = "FlowAuth",
+                Service = "Slap Battles",
+                Identifier = "your-identifier",
+                Provider = "Mixed",
+            },
+        },
+    },
+
+    Callback = function(key)
+        loadstring(game:HttpGet(
+            "https://flowauth.net/v1/loaders/69b6de63cea513b5a87ddf143f30e6fc.lua"
+        ))()
+    end,
+})
