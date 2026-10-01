@@ -13,6 +13,40 @@ Ophyn.new({
     Discord = "true",
     Website = "true",
 
+local GAME_LOADERS = {
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+    [Game Place ID] = {
+        Name = "Game Name Here",
+        Hash = "Place Flowauth hash here",
+    },
+}
     KeySystem = {
         SaveKey = true,
         API = {
