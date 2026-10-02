@@ -4274,7 +4274,6 @@ ZeHub.AddScript = function(self, options)
     return script
 end
 
-return ZeHub
 
 
 
@@ -4437,3 +4436,5 @@ Window:Notify({
     Type = "Success",
     Duration = 4,
 })
+
+return ZeHub
